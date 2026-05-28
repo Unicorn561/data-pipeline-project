@@ -1,0 +1,43 @@
+name: Deploy Infrastructure (Terraform)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**' # Only trigger if files inside the terraform folder change
+  workflow_dispatch: # This adds a manual "Run Workflow" button in GitHub
+
+jobs:
+  deploy-aks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform # Tell it where the Terraform code lives
+
+    # Map our JSON secret to the environment variables Terraform expects
+    env:
+      ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+      ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+      ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
+      ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Initialize Terraform
+        run: terraform init
+
+      - name: Verify Code Formatting
+        run: terraform fmt -check
+
+      - name: Dry Run (Plan)
+        run: terraform plan -out=tfplan
+
+      - name: Build Infrastructure (Apply)
+        # We auto-approve so it doesn't get stuck waiting for us to type 'yes'
+        run: terraform apply -auto-approve tfplan
