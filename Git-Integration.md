@@ -1,5 +1,5 @@
 #created git integration for Jira
-
+#Github and Jira integration
 - Go to Jira
 - Go to Spaces, select your space
 - Go to code tab
